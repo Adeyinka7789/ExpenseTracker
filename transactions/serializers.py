@@ -17,5 +17,5 @@ class UserSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'amount', 'type', 'description', 'created_at']
+        fields = ['id', 'amount', 'type', 'category', 'description', 'created_at']  # Added 'category'
         read_only_fields = ['created_at']
