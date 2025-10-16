@@ -1,0 +1,30 @@
+# Django core and REST framework
+Django
+djangorestframework
+djangorestframework-simplejwt
+
+# Database and caching
+mysqlclient
+redis
+django-redis
+
+# Deployment tools
+gunicorn
+django-heroku
+psycopg2-binary
+
+# Frontend and CORS
+django-cors-headers
+
+# Utilities and environment variables
+python-decouple
+Pillow
+requests
+
+# Form rendering and UI
+django-widget-tweaks
+django-crispy-forms
+crispy-bootstrap5
+
+# Logging
+django-db-logger
