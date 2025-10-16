@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker - Live API Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Chart.js Library for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
+        .card { padding: 1.5rem; border-radius: 0.5rem; background-color: white; box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1); }
+        .placeholder { background-color: #eee; border-radius: 4px; color: #aaa; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; border: 1px dashed #ccc; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6; /* Tailwind blue-500 */
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .text-income { color: #10b981; } /* Tailwind green-500 */
+        .text-expense { color: #ef4444; } /* Tailwind red-500 */
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+
+        <!-- Navigation Bar -->
+        <nav id="navbar" class="bg-gray-800 p-4 shadow-md hidden">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold text-white">ADM Finance Tracker (Live Demo)</h1>
+                <div class="flex space-x-4 items-center">
+                    <span id="usernameDisplay" class="text-white text-sm opacity-80 mr-2"></span>
+                    <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded-md transition">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Container -->
+        <main id="main-content" class="container mx-auto p-4 flex-grow">
+            <!-- Authentication View (Initial Load) -->
+            <div id="authView" class="max-w-md mx-auto mt-20 p-8 card">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Welcome Back</h2>
+                <div id="authMessage" class="hidden p-3 mb-4 rounded-md text-center text-sm"></div>
+                <form id="auth-form" class="space-y-4">
+                    <!-- Email field added for Registration -->
+                    <div id="emailField" class="hidden">
+                        <label for="auth-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="auth-email" name="email" placeholder="Enter email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="auth-username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="auth-username" name="username" required placeholder="Enter username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="auth-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="auth-password" name="password" required placeholder="Enter password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-md transition duration-150">Log In</button>
+                    <button type="button" id="toggleAuthBtn" class="w-full text-indigo-600 hover:text-indigo-800 text-sm py-2">Need an account? Register Here</button>
+                </form>
+            </div>
+
+            <!-- Dashboard View (After Login) -->
+            <div id="dashboardView" class="hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">User Dashboard</h2>
+
+                <!-- 1. Key Metrics (AnalyticsView Data) -->
+                <section id="key-metrics" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+
+                    <!-- Total Balance -->
+                    <div class="card border-l-4 border-green-500">
+                        <p class="text-sm font-semibold text-gray-500">Current Balance (O(1) Cached)</p>
+                        <div id="balanceValue" class="text-4xl font-extrabold text-green-700 mt-1 placeholder h-12 border-none bg-transparent">
+                            <div class="loader mx-auto"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Fetched from Redis cache, demonstrating O(1) performance.</p>
+                    </div>
+
+                    <!-- Total Income -->
+                    <div class="card border-l-4 border-blue-500">
+                        <p class="text-sm font-semibold text-gray-500">Total Income (YTD)</p>
+                        <div id="incomeValue" class="text-4xl font-extrabold text-blue-700 mt-1 placeholder h-12 border-none bg-transparent">
+                            ₦ 0.00
+                        </div>
+                    </div>
+
+                    <!-- Total Expenses -->
+                    <div class="card border-l-4 border-red-500">
+                        <p class="text-sm font-semibold text-gray-500">Total Expenses (YTD)</p>
+                        <div id="expenseValue" class="text-4xl font-extrabold text-red-700 mt-1 placeholder h-12 border-none bg-transparent">
+                            ₦ 0.00
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- 2. Main Content Area: Chart and Transaction Form -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Left Column: Data Visualization (2/3 width) -->
+                    <div class="lg:col-span-2 space-y-6">
+
+                        <!-- Monthly Trend Chart (Placeholder - Leaving as a future feature idea) -->
+                        <div class="card">
+                            <h3 class="text-xl font-semibold mb-3">Monthly Financial Trend</h3>
+                            <div id="monthlyChart" class="placeholder h-72">
+                                LINE CHART Placeholder (Data from /api/transactions/ filtered by month)
+                            </div>
+                        </div>
+
+                        <!-- Composition Breakdown Chart -->
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-semibold">Spending Breakdown by Category</h3>
+                                <button id="toggleChartTypeBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm py-1 px-3 rounded-md transition">
+                                    View as Bar Chart
+                                </button>
+                            </div>
+                            <!-- Canvas for Chart.js -->
+                            <div class="chart-container relative h-72 w-full max-w-lg mx-auto">
+                                <canvas id="compositionCanvas"></canvas>
+                            </div>
+                            <div id="noChartDataMessage" class="hidden text-center text-gray-500 mt-4">
+                                Not enough expense data to generate a chart. Log an expense!
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: Quick Actions & Transaction Form (1/3 width) -->
+                    <div class="lg:col-span-1 space-y-6">
+
+                        <!-- Transaction Input Form -->
+                        <div class="card bg-gray-50">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Log New Transaction</h3>
+                            <form id="transaction-form" class="space-y-4">
+                                <div>
+                                    <label for="transaction-type" class="block text-sm font-medium text-gray-700">Type</label>
+                                    <select id="transaction-type" name="type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white">
+                                        <option value="income">Income</option>
+                                        <option value="expense">Expense</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="transaction-amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                                    <input type="number" id="transaction-amount" name="amount" required step="0.01" min="0.01" placeholder="$ 0.00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                </div>
+                                <div>
+                                    <label for="transaction-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                    <select id="transaction-category" name="category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white">
+                                        <option value="Food">Food</option>
+                                        <option value="Salary">Salary</option>
+                                        <option value="Rent">Rent</option>
+                                        <option value="Utilities">Utilities</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="transaction-description" class="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea id="transaction-description" name="description" rows="2" placeholder="e.g., Dinner at Local Bistro" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></textarea>
+                                </div>
+                                <button type="submit" id="logTransactionBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-md transition duration-150 ease-in-out">
+                                    Record Transaction
+                                </button>
+                                <p id="formMessage" class="text-center text-sm mt-2 hidden"></p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Transaction History -->
+                <section id="history" class="mt-8">
+                    <div class="card">
+                        <h3 class="text-xl font-semibold mb-4">Transaction History (Live Data)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody" class="bg-white divide-y divide-gray-200 text-sm">
+                                    <tr class="text-center">
+                                        <td colspan="5" class="px-6 py-4 text-gray-400">Loading transactions...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-8 p-4 text-center text-gray-500 text-sm border-t">
+            ADM 2025 Finance Tracker API Demo | Built with Django & Redis | Frontend Wireframe
+        </footer>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const API_BASE_URL = "http://127.0.0.1:8000/api";
+        const TOKEN_KEY = 'finance_tracker_jwt';
+        const USERNAME_KEY = 'finance_tracker_username';
+        
+        // --- State Variables ---
+        let isAuthenticated = false;
+        let isRegisterMode = false;
+        let compositionChartInstance = null;
+        let currentChartType = 'doughnut'; // Default chart type
+
+        // Chart Colors
+        const CHART_COLORS = [
+            '#ef4444', // red-500 (Food)
+            '#3b82f6', // blue-500 (Rent)
+            '#f97316', // orange-500 (Utilities)
+            '#a855f7', // purple-500 (Other)
+            '#10b981', // green-500 (Salary/Income - though income shouldn't be in this chart)
+        ];
+
+        // --- Utility Functions ---
+        const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
+        const setAccessToken = (token) => localStorage.setItem(TOKEN_KEY, token);
+        const clearAuth = () => {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USERNAME_KEY);
+        };
+        const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+        
+        const setAuthMessage = (message, isError = false) => {
+            const msgEl = document.getElementById('authMessage');
+            msgEl.textContent = message;
+            msgEl.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
+            if (isError) {
+                msgEl.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                msgEl.classList.add('bg-green-100', 'text-green-800');
+            }
+        };
+
+        // --- Core API Request Logic ---
+        const apiRequest = async (endpoint, method = 'GET', data = null) => {
+            const token = getAccessToken();
+            if (!token && endpoint !== '/token/' && endpoint !== '/register/') {
+                return { error: "Authentication required." };
+            }
+
+            const url = `${API_BASE_URL}${endpoint}`;
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const config = {
+                method,
+                headers,
+                body: data ? JSON.stringify(data) : null
+            };
+
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(url, config);
+                    const responseData = await response.json().catch(() => ({}));
+
+                    if (response.ok) {
+                        return responseData;
+                    }
+                    
+                    if (response.status === 401 || response.status === 403) {
+                        if (isAuthenticated) {
+                            handleLogout("Session expired. Please log in again.");
+                        }
+                    }
+
+                    const errorMessage = responseData.detail || responseData.non_field_errors?.[0] || responseData.username?.[0] || response.statusText;
+                    throw new Error(errorMessage || `Request failed with status ${response.status}`);
+
+                } catch (error) {
+                    if (i === 2 || !error.message.includes('Failed to fetch')) {
+                        console.error(`API Request failed for ${endpoint}:`, error.message);
+                        return { error: error.message };
+                    }
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff
+                }
+            }
+        };
+
+        // --- Authentication Handlers ---
+        const handleLogin = async (username, password) => {
+            const result = await apiRequest('/token/', 'POST', { username, password });
+            
+            if (result && result.access) {
+                setAccessToken(result.access);
+                localStorage.setItem(USERNAME_KEY, username);
+                setAuthMessage(`Welcome, ${username}!`, false);
+                checkAuthStatus();
+            } else {
+                setAuthMessage(`Login failed: ${result.error || 'Invalid credentials'}`, true);
+            }
+        };
+
+        const handleRegister = async (username, email, password) => {
+            const result = await apiRequest('/register/', 'POST', { username, email, password });
+            
+            if (result && result.id) {
+                setAuthMessage(`Registration successful for ${username}. Please log in.`, false);
+                toggleAuthMode(false); // Switch to login mode
+            } else {
+                const error = result.error || 'Username or email may already be taken.';
+                setAuthMessage(`Registration failed: ${error}`, true);
+            }
+        };
+
+        const handleLogout = (message = "You have been logged out.") => {
+            clearAuth();
+            isAuthenticated = false;
+            // Destroy chart instance to prevent memory leaks/errors on unauthenticated view
+            if (compositionChartInstance) {
+                compositionChartInstance.destroy();
+                compositionChartInstance = null;
+            }
+            document.getElementById('authView').classList.remove('hidden');
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('navbar').classList.add('hidden');
+            setAuthMessage(message, message.includes("expired"));
+        };
+
+        const checkAuthStatus = () => {
+            if (getAccessToken()) {
+                isAuthenticated = true;
+                const username = localStorage.getItem(USERNAME_KEY) || 'User';
+                
+                document.getElementById('authView').classList.add('hidden');
+                document.getElementById('dashboardView').classList.remove('hidden');
+                document.getElementById('navbar').classList.remove('hidden');
+                document.getElementById('usernameDisplay').textContent = `Authenticated as: ${username}`;
+                
+                refreshDashboard();
+            } else {
+                isAuthenticated = false;
+                document.getElementById('authView').classList.remove('hidden');
+                document.getElementById('dashboardView').classList.add('hidden');
+                document.getElementById('navbar').classList.add('hidden');
+            }
+        };
+        
+        const toggleAuthMode = (newMode) => {
+            isRegisterMode = newMode !== undefined ? newMode : !isRegisterMode;
+            const title = document.querySelector('#authView h2');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const toggleBtn = document.getElementById('toggleAuthBtn');
+            const emailField = document.getElementById('emailField');
+            
+            if (isRegisterMode) {
+                title.textContent = "Create New Account";
+                submitBtn.textContent = "Register";
+                toggleBtn.textContent = "Already have an account? Log In";
+                emailField.classList.remove('hidden');
+                document.getElementById('auth-email').required = true;
+            } else {
+                title.textContent = "Welcome Back";
+                submitBtn.textContent = "Log In";
+                toggleBtn.textContent = "Need an account? Register Here";
+                emailField.classList.add('hidden');
+                document.getElementById('auth-email').required = false;
+            }
+            document.getElementById('auth-form').reset();
+            document.getElementById('authMessage').classList.add('hidden');
+        };
+
+        // --- Dashboard Data Fetchers and Chart Logic ---
+        
+        const fetchBalance = async () => {
+            const balanceEl = document.getElementById('balanceValue');
+            balanceEl.innerHTML = '<div class="loader mx-auto"></div>'; // Show loader
+
+            const result = await apiRequest('/analytics/'); 
+            
+            if (result && result.balance !== undefined) {
+                const balance = parseFloat(result.balance);
+                const formattedBalance = formatCurrency(balance);
+                
+                balanceEl.classList.remove('text-green-700', 'text-red-700');
+                balanceEl.classList.add(balance >= 0 ? 'text-green-700' : 'text-red-700');
+                balanceEl.innerHTML = formattedBalance;
+                
+                return balance;
+            }
+            balanceEl.textContent = result.error ? `Error: ${result.error}` : "N/A";
+            return null; 
+        };
+        
+        const fetchTransactions = async () => {
+             const result = await apiRequest('/transactions/');
+             if (Array.isArray(result)) {
+                 return result;
+             }
+             return [];
+        };
+
+        const logTransaction = async (transactionData) => {
+            const result = await apiRequest('/transactions/', 'POST', transactionData);
+            return result;
+        };
+        
+        let chartDataCache = {
+            labels: [],
+            datasets: []
+        };
+        
+        const prepareChartData = (transactions) => {
+            const expensesByCategory = {};
+            
+            // 1. Filter and Group Expenses
+            transactions
+                .filter(tx => tx.type === 'expense' && tx.category)
+                .forEach(tx => {
+                    const amount = parseFloat(tx.amount);
+                    const category = tx.category;
+                    expensesByCategory[category] = (expensesByCategory[category] || 0) + amount;
+                });
+
+            const categories = Object.keys(expensesByCategory).sort();
+            const amounts = categories.map(cat => expensesByCategory[cat]);
+            
+            // Check if there are meaningful expenses to chart
+            const hasData = amounts.some(a => a > 0);
+            
+            if (!hasData) {
+                chartDataCache = { labels: [], datasets: [] };
+                return;
+            }
+
+            // 2. Prepare Chart.js compatible data structure
+            chartDataCache = {
+                labels: categories,
+                datasets: [{
+                    label: 'Expense Amount',
+                    data: amounts,
+                    backgroundColor: categories.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+                    hoverOffset: 8,
+                }]
+            };
+        };
+
+        const renderCompositionChart = () => {
+            const ctx = document.getElementById('compositionCanvas').getContext('2d');
+            const dataContainer = document.querySelector('.chart-container');
+            const noDataMessage = document.getElementById('noChartDataMessage');
+            const toggleBtn = document.getElementById('toggleChartTypeBtn');
+
+            // Destroy previous chart instance if it exists
+            if (compositionChartInstance) {
+                compositionChartInstance.destroy();
+            }
+            
+            if (chartDataCache.labels.length === 0) {
+                dataContainer.classList.add('hidden');
+                noDataMessage.classList.remove('hidden');
+                return;
+            }
+
+            dataContainer.classList.remove('hidden');
+            noDataMessage.classList.add('hidden');
+            
+            const isDoughnut = currentChartType === 'doughnut';
+            
+            // Update button text
+            toggleBtn.textContent = isDoughnut ? 'View as Bar Chart' : 'View as Doughnut Chart';
+
+
+            compositionChartInstance = new Chart(ctx, {
+                type: isDoughnut ? 'doughnut' : 'bar',
+                data: chartDataCache,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: isDoughnut ? 'right' : 'top', // Legend on the right for Doughnut
+                        },
+                        title: {
+                            display: true,
+                            text: `Category Spending Breakdown (${isDoughnut ? 'Doughnut' : 'Bar'} View)`
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    if (label) {
+                                        let sum = 0;
+                                        const dataArr = context.chart.data.datasets[0].data;
+                                        sum = dataArr.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = ((value / sum) * 100).toFixed(2) + '%';
+                                        return `${label}: ${formatCurrency(value)} (${percentage})`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    // Specific options for Bar chart visibility
+                    scales: isDoughnut ? {} : {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount ($)'
+                            }
+                        }
+                    }
+                }
+            });
+        };
+        
+        // --- UI Rendering Functions ---
+        
+        const renderTransactions = (transactions) => {
+            const tableBody = document.getElementById('transactionTableBody');
+            tableBody.innerHTML = ''; 
+
+            if (transactions.length === 0) {
+                tableBody.innerHTML = `<tr class="text-center"><td colspan="5" class="px-6 py-4 text-gray-400">No transactions recorded yet.</td></tr>`;
+                return;
+            }
+
+            // Sort by date descending
+            transactions.sort((a, b) => new Date(b.created_at || Date.now()) - new Date(a.created_at || Date.now()));
+
+            let incomeTotal = 0;
+            let expenseTotal = 0;
+
+            transactions.forEach(tx => {
+                const isIncome = tx.type === 'income';
+                const amount = parseFloat(tx.amount);
+                const amountText = formatCurrency(amount);
+                // Use 'created_at' from DRF, defaulting to 'date' if backend uses a different name, or current time
+                const date = new Date(tx.created_at || tx.date || Date.now()).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric'
+                });
+
+                if (isIncome) {
+                    incomeTotal += amount;
+                } else {
+                    expenseTotal += amount;
+                }
+                
+                // Render table row
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap ${isIncome ? 'text-income' : 'text-expense'} font-medium">${tx.type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${tx.category || '-'}</td>
+                        <td class="px-6 py-4">${tx.description || '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right font-bold">${amountText}</td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+            
+            document.getElementById('incomeValue').textContent = formatCurrency(incomeTotal);
+            document.getElementById('expenseValue').textContent = formatCurrency(expenseTotal);
+        };
+        
+        // --- Main Dashboard Controller ---
+        const refreshDashboard = async () => {
+            // 1. Fetch Balance (O(1) Redis call)
+            await fetchBalance();
+
+            // 2. Fetch all Transactions
+            const transactions = await fetchTransactions();
+            
+            // 3. Render Table and Calculate Totals (O(N) data processing)
+            renderTransactions(transactions);
+            
+            // 4. Prepare and Render Chart
+            prepareChartData(transactions);
+            renderCompositionChart();
+        };
+
+        // --- Event Listeners and Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Check Auth Status on Load
+            checkAuthStatus();
+            
+            // 2. Authentication Form Submission
+            document.getElementById('auth-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('auth-username').value;
+                const password = document.getElementById('auth-password').value;
+                const email = document.getElementById('auth-email').value; // Get email value
+                const submitBtn = document.getElementById('authSubmitBtn');
+                
+                submitBtn.disabled = true;
+                
+                if (isRegisterMode) {
+                    await handleRegister(username, email, password); // Pass email to register
+                } else {
+                    await handleLogin(username, password);
+                }
+                
+                submitBtn.disabled = false;
+            });
+            
+            // 3. Toggle Auth Mode
+            document.getElementById('toggleAuthBtn').addEventListener('click', () => toggleAuthMode());
+
+            // 4. Logout Button
+            document.getElementById('logoutBtn').addEventListener('click', () => handleLogout("You have been logged out."));
+            
+            // 5. Toggle Chart Type Button
+            document.getElementById('toggleChartTypeBtn').addEventListener('click', () => {
+                currentChartType = currentChartType === 'doughnut' ? 'bar' : 'doughnut';
+                renderCompositionChart();
+            });
+
+            // 6. Transaction Form Submission
+            document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const logBtn = document.getElementById('logTransactionBtn');
+                const formMsg = document.getElementById('formMessage');
+
+                logBtn.disabled = true;
+                logBtn.textContent = 'Recording...';
+                formMsg.classList.add('hidden');
+
+                const data = {
+                    amount: parseFloat(document.getElementById('transaction-amount').value),
+                    type: document.getElementById('transaction-type').value,
+                    category: document.getElementById('transaction-category').value,
+                    description: document.getElementById('transaction-description').value,
+                };
+
+                const result = await logTransaction(data);
+
+                logBtn.disabled = false;
+                logBtn.textContent = 'Record Transaction';
+                
+                if (result.error) {
+                    formMsg.classList.remove('hidden');
+                    formMsg.classList.add('text-red-600');
+                    formMsg.textContent = `Error: ${result.error}`;
+                } else {
+                    formMsg.classList.remove('hidden', 'text-red-600');
+                    formMsg.classList.add('text-green-600');
+                    formMsg.textContent = `Transaction ID ${result.id || 'N/A'} logged successfully!`;
+                    form.reset(); 
+                    // CRITICAL: Refresh to update dashboard and re-render charts
+                    refreshDashboard();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
