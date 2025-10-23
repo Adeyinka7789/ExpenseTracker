@@ -845,7 +845,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 **Developer:** Michael Adeniran  
 📧 Email: Dotunm95@gmail.com  
 📱 Phone: +234 703 083 4157  
-🐙 GitHub: [@Adeyink7789](https://github.com/Adeyinka7789)
+🐙 GitHub: [@Adeyinka7789](https://github.com/Adeyinka7789)
 
 ---
 
