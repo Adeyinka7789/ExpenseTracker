@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 from django.urls import path
 from .views import RegisterView, TransactionListCreateView, AnalyticsView
 # Note: TokenObtainPairView is only imported if needed elsewhere, 

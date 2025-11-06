@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 """
 WSGI config for finance_tracker project.
 

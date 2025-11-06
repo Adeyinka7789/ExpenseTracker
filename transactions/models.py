@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 

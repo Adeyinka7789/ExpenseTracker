@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 from django.apps import AppConfig
 
 

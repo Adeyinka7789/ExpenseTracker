@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.cache import cache

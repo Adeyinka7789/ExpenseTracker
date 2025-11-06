@@ -1,3 +1,5 @@
+# REVIEW: full code review requested
+
 """
 Django settings for finance_tracker project.
 ... (rest of header)

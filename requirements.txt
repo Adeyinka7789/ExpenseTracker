@@ -1,3 +1,5 @@
+# REVIEW: Django requirements
+
 # Django core and REST framework
 Django
 djangorestframework
