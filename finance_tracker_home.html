@@ -6,7 +6,6 @@
     <title>Finance Tracker - API</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <!-- Chart.js Library for Data Visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
@@ -14,8 +13,7 @@
         .placeholder { background-color: #eee; border-radius: 4px; color: #aaa; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; border: 1px dashed #ccc; }
         .loader {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6; /* Tailwind blue-500 */
-            border-radius: 50%;
+            border-top: 4px solid #3b82f6;
             width: 20px;
             height: 20px;
             animation: spin 1s linear infinite;
@@ -224,7 +222,6 @@
         let compositionChartInstance = null;
         let currentChartType = 'doughnut'; // Default chart type
 
-        // Chart Colors
         const CHART_COLORS = [
             '#ef4444', // red-500 (Food)
             '#3b82f6', // blue-500 (Rent)
@@ -233,7 +230,6 @@
             '#10b981', // green-500 (Salary/Income - though income shouldn't be in this chart)
         ];
 
-        // --- Utility Functions ---
         const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
         const setAccessToken = (token) => localStorage.setItem(TOKEN_KEY, token);
         const clearAuth = () => {
@@ -253,7 +249,6 @@
             }
         };
 
-        // --- Core API Request Logic ---
         const apiRequest = async (endpoint, method = 'GET', data = null) => {
             const token = getAccessToken();
             if (!token && endpoint !== '/token/' && endpoint !== '/register/') {

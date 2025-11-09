@@ -35,17 +35,12 @@ class AnalyticsView(generics.RetrieveAPIView):
         user = request.user
         cache_key = f"user_balance_{user.id}"
 
-        # Try fetching from cache first
         balance = cache.get(cache_key)
         if balance is None:
             transactions = Transaction.objects.filter(user=user)
-
             income = transactions.filter(type='income').aggregate(total=Sum('amount'))['total'] or Decimal(0)
             expenses = transactions.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal(0)
-
             balance = income - expenses
-
-            # Cache result for 5 minutes (300 seconds)
             cache.set(cache_key, float(balance), timeout=300)
 
         return Response({
