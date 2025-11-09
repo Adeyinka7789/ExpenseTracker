@@ -5,24 +5,12 @@ Django settings for finance_tracker project.
 
 from pathlib import Path
 from datetime import timedelta
-# Removed unused 'import os'
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-himzk6wn3db4oh+aph0#_p94t^!oob$2p(=)ut$8lk502u4(75'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'rest_framework',
@@ -66,10 +54,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'finance_tracker.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -77,9 +61,7 @@ DATABASES = {
     }
 }
 
-# Allows all hosts during local development. For production, restrict this.
 CORS_ALLOW_ALL_ORIGINS = True 
-# Required to handle credentials (Authorization headers for JWT)
 CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
@@ -97,7 +79,6 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
-# Redis Cache (local: use Docker or install redis-server)
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
@@ -107,10 +88,6 @@ CACHES = {
         }
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -129,9 +106,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'transactions.User'
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -140,13 +114,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
