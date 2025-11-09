@@ -25,10 +25,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # --- NEW: Added DRF and CORS ---
     'rest_framework',
     'corsheaders', 
-    # -------------------------------
     'transactions',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -39,9 +37,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # --- NEW: Added CORS Middleware at the top ---
     'corsheaders.middleware.CorsMiddleware', 
-    # --------------------------------------------
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,12 +77,10 @@ DATABASES = {
     }
 }
 
-# --- CORS Configuration (Fixes the "OPTIONS" 200/404 issue) ---
 # Allows all hosts during local development. For production, restrict this.
 CORS_ALLOW_ALL_ORIGINS = True 
 # Required to handle credentials (Authorization headers for JWT)
 CORS_ALLOW_CREDENTIALS = True
-# -------------------------------------------------------------
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
