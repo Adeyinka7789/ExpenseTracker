@@ -28,23 +28,31 @@ class TransactionListCreateView(generics.ListCreateAPIView):
 
 
 class AnalyticsView(generics.RetrieveAPIView):
-    """Returns analytics such as balance and transaction count."""
+    """Returns user balance and transaction analytics with caching."""
     permission_classes = [IsAuthenticated]
+
+    def _get_balance(self, user):
+        """
+        Calculate user balance from income and expenses.
+        """
+        cache_key = f"user_balance_{user.id}"
+        cached_balance = cache.get(cache_key)
+
+        if cached_balance is not None:
+            return Decimal(str(cached_balance))
+
+        transactions = Transaction.objects.filter(user=user)
+        income = transactions.filter(type='income').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        expenses = transactions.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        balance = income - expenses
+        cache.set(cache_key, float(balance), timeout=300)
+        return balance
 
     def get(self, request):
         user = request.user
-        cache_key = f"user_balance_{user.id}"
-
-        balance = cache.get(cache_key)
-        if balance is None:
-            transactions = Transaction.objects.filter(user=user)
-            income = transactions.filter(type='income').aggregate(total=Sum('amount'))['total'] or Decimal(0)
-            expenses = transactions.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal(0)
-            balance = income - expenses
-            cache.set(cache_key, float(balance), timeout=300)
+        balance = self._get_balance(user)
 
         return Response({
             'balance': balance,
             'transaction_count': Transaction.objects.filter(user=user).count(),
-            'last_updated': cache.get(f"update_{user.id}")  # Optional timestamp
         })
