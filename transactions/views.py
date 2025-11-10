@@ -28,31 +28,40 @@ class TransactionListCreateView(generics.ListCreateAPIView):
 
 
 class AnalyticsView(generics.RetrieveAPIView):
-    """Returns user balance and transaction analytics with caching."""
+
     permission_classes = [IsAuthenticated]
 
-    def _get_balance(self, user):
-        """
-        Calculate user balance from income and expenses.
-        """
-        cache_key = f"user_balance_{user.id}"
-        cached_balance = cache.get(cache_key)
+    def _get_balance_and_count(self, user):
 
-        if cached_balance is not None:
-            return Decimal(str(cached_balance))
+        cache_key = f"user_analytics_{user.id}"
+        cached = cache.get(cache_key)
 
-        transactions = Transaction.objects.filter(user=user)
-        income = transactions.filter(type='income').aggregate(total=Sum('amount'))['total'] or Decimal('0')
-        expenses = transactions.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        if cached:
+            return cached['balance'], cached['count']
+
+        agg = Transaction.objects.filter(user=user).aggregate(
+            income=Sum('amount', filter=Q(type='income')),
+            expenses=Sum('amount', filter=Q(type='expense')),
+            count=Count('id')
+        )
+
+        income = agg['income'] or Decimal('0')
+        expenses = agg['expenses'] or Decimal('0')
         balance = income - expenses
-        cache.set(cache_key, float(balance), timeout=300)
-        return balance
+        count = agg['count'] or 0
+
+        cache.set(cache_key, {
+            'balance': float(balance),
+            'count': count
+        }, timeout=300)
+
+        return balance, count
 
     def get(self, request):
         user = request.user
-        balance = self._get_balance(user)
+        balance, count = self._get_balance_and_count(user)
 
         return Response({
             'balance': balance,
-            'transaction_count': Transaction.objects.filter(user=user).count(),
+            'transaction_count': count,
         })
