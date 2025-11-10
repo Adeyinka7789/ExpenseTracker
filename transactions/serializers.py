@@ -29,8 +29,5 @@ class TransactionSerializer(serializers.ModelSerializer):
         transaction = Transaction.objects.create(**validated_data)
         user = validated_data.get('user')
         if user:
-            cache_key = f"user_balance_{user.id}"
-            cache.delete(cache_key)
-            cache.set(f"update_{user.id}", str(transaction.created_at), timeout=300)
-
+            cache.delete(f"user_balance_{user.id}")
         return transaction
